@@ -12,7 +12,8 @@ import java.util.List;
 public class JsoupExample {
 
     public static void main(String[] args) throws IOException {
-        String baseUrl = "https://www.russianfood.com/search/simple/index.php";
+        String baseUrl = "https://www.russianfood.com";
+        String urlSearch = "https://www.russianfood.com/search/simple/index.php";
 
         String searchQuery = "блины";
         String category = "27"; // блины и оладьи
@@ -20,7 +21,7 @@ public class JsoupExample {
 
         String encodedQuery = URLEncoder.encode(searchQuery, "Windows-1251");
 
-        String url = baseUrl + "?sskw_title=" + encodedQuery +
+        String url = urlSearch + "?sskw_title=" + encodedQuery +
                 "&tag_tree[1][]=" + category +
                 "&tag_tree[2][]=" + kitchen +
                 "&ssgrtype=bytype";
@@ -45,10 +46,13 @@ public class JsoupExample {
             if (linkElement != null) {
                 String relativeLink = linkElement.attr("href");
                 // Преобразуем относительную ссылку в абсолютную
-                String absoluteLink = "https://www.russianfood.com" + relativeLink;
+                String absoluteLink;
+                if (!relativeLink.startsWith(baseUrl))
+                    absoluteLink = baseUrl.concat(relativeLink);
+                else
+                    absoluteLink = relativeLink;
                 recipeLinks.add(absoluteLink);
 
-                // Выводим ссылку
                 System.out.println("Ссылка на рецепт: " + absoluteLink);
             }
         }
