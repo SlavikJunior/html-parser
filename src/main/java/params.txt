@@ -1,0 +1,51 @@
+ssgrtype	Тип поиска	bytype	Да
+sskw_title	Поисковый запрос	блины	Нет (может быть пустым)
+tag_tree[1][]	Категория блюда	27 (блины)	Нет (0 = все)
+tag_tree[2][]	Национальная кухня	103 (русская)	Нет (0 = все)
+tag_tree[7][216]	Вегетарианские	 (пустое = включено)	Нет
+sskw_iplus	Обязательные ингредиенты	мука,яйца	Нет
+sskw_iminus	Исключаемые ингредиенты	мясо,рыба	Нет
+intext	Поиск в тексте	 (пустое = включено)	Нет
+submit	Кнопка отправки	 (пустая строка)	Да
+
+Примеры URL с разными параметрами:
+
+1. Блины русские:
+text
+https://www.russianfood.com/search/simple/index.php?
+ssgrtype=bytype&
+sskw_title=блины&
+tag_tree[1][]=27&
+tag_tree[2][]=103&
+submit=
+
+2. Веганские блины русские:
+text
+https://www.russianfood.com/search/simple/index.php?
+ssgrtype=bytype&
+sskw_title=блины&
+tag_tree[1][]=27&
+tag_tree[2][]=103&
+tag_tree[7][216]=&    ← ВЕГАНСКИЙ ФИЛЬТР
+submit=
+
+3. Супы с курицей без моркови:
+text
+https://www.russianfood.com/search/simple/index.php?
+ssgrtype=bytype&
+sskw_title=суп&
+tag_tree[1][]=11&      ← Супы
+tag_tree[2][]=0&       ← Все кухни
+sskw_iplus=курица&     ← С курицей
+sskw_iminus=морковь&   ← Без моркови
+submit=
+
+4. Итальянская паста:
+text
+https://www.russianfood.com/search/simple/index.php?
+ssgrtype=bytype&
+sskw_title=паста&
+tag_tree[1][]=96&      ← Паста
+tag_tree[2][]=110&     ← Итальянская кухня
+intext=&               ← Поиск в тексте
+submit=

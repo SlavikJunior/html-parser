@@ -18,23 +18,37 @@ public class JsoupExample {
         String searchQuery = "блины";
         String category = "27"; // блины и оладьи
         String kitchen = "103"; // русская
+        boolean vegetarian = true; // ← ВОТ ЭТО НОВЫЙ ПАРАМЕТР
 
         String encodedQuery = URLEncoder.encode(searchQuery, "Windows-1251");
 
-        String url = urlSearch + "?sskw_title=" + encodedQuery +
-                "&tag_tree[1][]=" + category +
-                "&tag_tree[2][]=" + kitchen +
-                "&ssgrtype=bytype";
+        // Собираем URL с веганским фильтром
+        StringBuilder urlBuilder = new StringBuilder(urlSearch);
+        urlBuilder.append("?sskw_title=").append(encodedQuery)
+                .append("&tag_tree[1][]=").append(category)
+                .append("&tag_tree[2][]=").append(kitchen);
+
+        // ← ДОБАВЛЯЕМ ВЕГАНСКИЙ ФИЛЬТР ЕСЛИ НУЖНО
+        if (vegetarian) {
+            urlBuilder.append("&tag_tree[7][216]="); // Пустое значение для активации чекбокса
+        }
+
+        urlBuilder.append("&ssgrtype=bytype");
+
+        String url = urlBuilder.toString();
+
+        System.out.println("Поисковый URL: " + url);
+        System.out.println("Фильтр 'Вегетарианские': " + (vegetarian ? "ВКЛ" : "ВЫКЛ"));
 
         Document doc = Jsoup.connect(url)
                 .userAgent(HttpConnection.DEFAULT_UA)
                 .referrer("https://www.russianfood.com/search/")
-                .timeout(10000) // время ожидания ответа от сервера, должно совпадать с тем, сколько ждём на ui
+                .timeout(10000)
                 .get();
 
         Elements elements = doc.getElementsByClass("in_seen");
 
-        Elements onUser = getFirstN(elements, 5);
+        Elements onUser = getFirstN(elements, -1);
 
 //        onUser.forEach((element -> System.out.println(element + "\n=============================")));
 
@@ -53,7 +67,13 @@ public class JsoupExample {
                     absoluteLink = relativeLink;
                 recipeLinks.add(absoluteLink);
 
-                System.out.println("Ссылка на рецепт: " + absoluteLink);
+                // Выводим также название рецепта
+                Element titleElement = recipeElement.selectFirst("h3");
+                String title = titleElement != null ? titleElement.text() : "Без названия";
+
+                System.out.println("Рецепт: " + title);
+                System.out.println("Ссылка: " + absoluteLink);
+                System.out.println("---");
             }
         }
 
@@ -61,8 +81,12 @@ public class JsoupExample {
     }
 
     private static Elements getFirstN(Elements src, int n) {
+        if (n < 0)
+            return src;
+
         Elements dst = new Elements();
-        for (int i = 0; i < n; i++) {
+        int count = Math.min(n, src.size());
+        for (int i = 0; i < count; i++) {
             dst.add(src.get(i));
         }
         return dst;
