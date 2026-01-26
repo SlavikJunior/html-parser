@@ -9,71 +9,83 @@ import java.util.regex.Pattern;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-            String url = "https://www.russianfood.com/recipes/recipe.php?rid=122848";
+        String url = "https://www.russianfood.com/recipes/recipe.php?rid=158937";
 
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                    .referrer("https://www.russianfood.com")
-                    .timeout(10000)
-                    .get();
+        Document doc = Jsoup.connect(url)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .referrer("https://www.russianfood.com")
+                .timeout(10000)
+                .get();
 
-            // 1. НАЗВАНИЕ РЕЦЕПТА
-            String title = extractTitle(doc);
-            System.out.println("Название: " + title);
+        // 1. НАЗВАНИЕ РЕЦЕПТА
+        String title = extractTitle(doc);
+        System.out.println("Название: " + title);
 
-            // 2. ГЛАВНАЯ КАРТИНКА
-            String mainImage = extractMainImage(doc);
-            System.out.println("Картинка: " + mainImage);
+        // 2. ГЛАВНАЯ КАРТИНКА
+        String mainImage = extractMainImage(doc);
+        System.out.println("Картинка: " + mainImage);
 
-            // 3. ОПИСАНИЕ РЕЦЕПТА
-            String description = extractDescription(doc);
-            System.out.println("Описание: " + description);
+        // 3.1. ОПИСАНИЕ РЕЦЕПТА
+        String description = extractDescription(doc);
+        System.out.println("Описание: " + description);
 
-            // 4. ИНГРЕДИЕНТЫ И ПОРЦИИ
-            System.out.println("\n=== ИНГРЕДИЕНТЫ ===");
-            Elements ingredients = extractIngredients(doc);
-            String portions = extractPortions(doc);
-            System.out.println("Порции: " + portions);
+        // 3.2. ПОЛНОЕ ОПИСАНИЕ РЕЦЕПТА
+        String fullDescription = extractFullDescription(doc);
+        System.out.println("Полное описание: " + fullDescription);
 
-            for (Element ingredient : ingredients) {
-                System.out.println("  - " + ingredient.text());
-            }
+        // 4. ИНГРЕДИЕНТЫ И ПОРЦИИ
+        System.out.println("\n=== ИНГРЕДИЕНТЫ ===");
+        Elements ingredients = extractIngredients(doc);
+        String portions = extractPortions(doc);
+        System.out.println("Порции: " + portions);
 
-            // 5. ВИДЕО (если есть)
-            System.out.println("\n=== ВИДЕО ===");
-            String videoId = extractVideoId(doc);
-            if (videoId != null && !videoId.isEmpty()) {
-                System.out.println("YouTube ID: " + videoId);
-                System.out.println("Ссылка: https://www.youtube.com/watch?v=" + videoId);
-            } else {
-                System.out.println("Видео не найдено");
-            }
+        for (Element ingredient : ingredients) {
+            System.out.println("  - " + ingredient.text());
+        }
 
-            // 6. ШАГИ ПРИГОТОВЛЕНИЯ
-            System.out.println("\n=== ШАГИ ПРИГОТОВЛЕНИЯ ===");
-            Elements steps = extractSteps(doc);
-            System.out.println("Всего шагов: " + steps.size());
+        // 5. ВРЕМЯ ПРИГОТОВЛЕНИЯ
+        System.out.println("\n=== ВРЕМЯ ПРИГОТОВЛЕНИЯ ===");
+        String cookingTime = extractCookingTime(doc);
+        System.out.println("Общее время: " + cookingTime);
 
-            for (int i = 0; i < steps.size(); i++) {
-                Element step = steps.get(i);
-                System.out.println("\nШаг " + (i + 1) + ":");
+        String yourTime = extractYourTime(doc);
+        System.out.println("Ваше время: " + (yourTime != null ? yourTime : "не указано"));
 
-                // Извлекаем картинку шага
-                Element stepImg = step.select("img").first();
-                if (stepImg != null) {
-                    String imgUrl = stepImg.attr("src");
-                    if (imgUrl.startsWith("//")) {
-                        imgUrl = "https:" + imgUrl;
-                    }
-                    System.out.println("Картинка: " + imgUrl);
+        // 6. ВИДЕО (если есть)
+        System.out.println("\n=== ВИДЕО ===");
+        String videoId = extractVideoId(doc);
+        if (videoId != null && !videoId.isEmpty()) {
+            System.out.println("YouTube ID: " + videoId);
+            System.out.println("Ссылка: https://www.youtube.com/watch?v=" + videoId);
+        } else {
+            System.out.println("Видео не найдено");
+        }
+
+        // 7. ШАГИ ПРИГОТОВЛЕНИЯ
+        System.out.println("\n=== ШАГИ ПРИГОТОВЛЕНИЯ ===");
+        Elements steps = extractSteps(doc);
+        System.out.println("Всего шагов: " + steps.size());
+
+        for (int i = 0; i < steps.size(); i++) {
+            Element step = steps.get(i);
+            System.out.println("\nШаг " + (i + 1) + ":");
+
+            // Извлекаем картинку шага
+            Element stepImg = step.select("img").first();
+            if (stepImg != null) {
+                String imgUrl = stepImg.attr("src");
+                if (imgUrl.startsWith("//")) {
+                    imgUrl = "https:" + imgUrl;
                 }
-
-                // Извлекаем описание шага
-                Element stepText = step.select("p").first();
-                if (stepText != null) {
-                    System.out.println("Описание: " + stepText.text());
-                }
+                System.out.println("Картинка: " + imgUrl);
             }
+
+            // Извлекаем описание шага
+            Element stepText = step.select("p").first();
+            if (stepText != null) {
+                System.out.println("Описание: " + stepText.text());
+            }
+        }
     }
 
     // Методы для извлечения данных
@@ -129,6 +141,12 @@ public class Main {
         return descElement != null ? descElement.text() : "Описание не найдено";
     }
 
+    private static String extractFullDescription(Document doc) {
+        // Ищем полное описание
+        Element fullDescElement = doc.getElementById("how");
+        return fullDescElement != null ? fullDescElement.text() : "Полное описание не найдено";
+    }
+
     private static Elements extractIngredients(Document doc) {
         Element ingredientsTable = doc.getElementById("from");
         if (ingredientsTable != null) {
@@ -144,6 +162,79 @@ public class Main {
             return portionElement != null ? portionElement.text() : "Порции не указаны";
         }
         return "Порции не указаны";
+    }
+
+    private static String extractCookingTime(Document doc) {
+        // Ищем блок с информацией о времени приготовления
+        Element timeElement = doc.select("div.sub_info div.el:has(i.ico_time)").first();
+        if (timeElement != null) {
+            // Извлекаем общее время (первый span с классом hl)
+            Element totalTimeSpan = timeElement.select("span.hl").first();
+            if (totalTimeSpan != null) {
+                // Получаем полный текст времени (например: "50 мин")
+                String timeText = totalTimeSpan.text();
+
+                // Находим элемент <b> внутри span для получения числового значения
+                Element bElement = totalTimeSpan.select("b").first();
+                if (bElement != null) {
+                    String timeValue = bElement.text();
+                    String timeUnit = timeText.replace(timeValue, "").trim();
+                    return timeValue + " " + timeUnit;
+                }
+
+                return timeText;
+            }
+        }
+
+        // Альтернативный поиск по тексту
+        Element timeBlock = doc.select("div.el:contains(мин)").first();
+        if (timeBlock != null) {
+            String text = timeBlock.text();
+            // Ищем общее время (до скобки)
+            if (text.contains("(")) {
+                return text.substring(0, text.indexOf("(")).trim();
+            }
+            return text;
+        }
+
+        return "Время не указано";
+    }
+
+    private static String extractYourTime(Document doc) {
+        // Ищем блок с информацией о времени приготовления
+        Element timeElement = doc.select("div.sub_info div.el:has(i.ico_time)").first();
+        if (timeElement != null) {
+            String text = timeElement.text();
+
+            // Ищем "ваши" в скобках
+            if (text.contains("ваши")) {
+                // Используем регулярное выражение для поиска вашего времени
+                Pattern pattern = Pattern.compile("ваши\\s*<b>(\\d+)</b>\\s*(\\S+)");
+                Matcher matcher = pattern.matcher(timeElement.html());
+                if (matcher.find()) {
+                    return matcher.group(1) + " " + matcher.group(2);
+                }
+
+                // Альтернативный поиск в тексте
+                Pattern textPattern = Pattern.compile("ваши\\s*(\\d+)\\s*(мин|часов|час|ч)");
+                Matcher textMatcher = textPattern.matcher(text);
+                if (textMatcher.find()) {
+                    return textMatcher.group(1) + " " + textMatcher.group(2);
+                }
+            }
+        }
+
+        // Альтернативный поиск
+        Elements timeSpans = doc.select("span.hl");
+        if (timeSpans.size() >= 2) {
+            // Второй span.hl часто содержит "ваше время"
+            Element yourTimeSpan = timeSpans.get(1);
+            if (yourTimeSpan.text().contains("мин")) {
+                return yourTimeSpan.text();
+            }
+        }
+
+        return null;
     }
 
     private static String extractVideoId(Document doc) {
