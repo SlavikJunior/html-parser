@@ -1,73 +1,63 @@
+import com.example.whattoeat.data.net.hack.ProxyRepository;
+import com.example.whattoeat.data.net.hack.UserAgentRepository;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.HttpConnection;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JsoupExample {
 
+    private static final ProxyRepository proxyRepository = new ProxyRepository();
+    private static final UserAgentRepository userAgentRepository = new UserAgentRepository();
+
+    private static final int MAX_RETRIES = 20;
+    private static final int TIMEOUT = 7500;
+
     public static void main(String[] args) throws IOException {
         String baseUrl = "https://www.russianfood.com";
         String urlSearch = "https://www.russianfood.com/search/simple/index.php";
 
         String searchQuery = "блины";
-        String category = "27"; // блины и оладьи
-        String kitchen = "103"; // русская
-        boolean vegetarian = true; // ← ВОТ ЭТО НОВЫЙ ПАРАМЕТР
+        String category = "27";
+        String kitchen = "103";
+        boolean vegetarian = false;
 
         String encodedQuery = URLEncoder.encode(searchQuery, "Windows-1251");
 
-        // Собираем URL с веганским фильтром
         StringBuilder urlBuilder = new StringBuilder(urlSearch);
         urlBuilder.append("?sskw_title=").append(encodedQuery)
                 .append("&tag_tree[1][]=").append(category)
                 .append("&tag_tree[2][]=").append(kitchen);
 
-        // ← ДОБАВЛЯЕМ ВЕГАНСКИЙ ФИЛЬТР ЕСЛИ НУЖНО
-        if (vegetarian) {
-            urlBuilder.append("&tag_tree[7][216]="); // Пустое значение для активации чекбокса
-        }
-
         urlBuilder.append("&ssgrtype=bytype");
-
         String url = urlBuilder.toString();
 
         System.out.println("Поисковый URL: " + url);
         System.out.println("Фильтр 'Вегетарианские': " + (vegetarian ? "ВКЛ" : "ВЫКЛ"));
 
-        Document doc = Jsoup.connect(url)
-                .userAgent(HttpConnection.DEFAULT_UA)
-                .referrer("https://www.russianfood.com/search/")
-                .timeout(10000)
-                .get();
+        Document doc = null;
 
+        System.out.println("Пробуем с прокси");
+        doc = tryWithProxies(url, MAX_RETRIES);
+
+        // Обработка результата
         Elements elements = doc.getElementsByClass("in_seen");
-
-        Elements onUser = getFirstN(elements, -1);
-
-//        onUser.forEach((element -> System.out.println(element + "\n=============================")));
-
         List<String> recipeLinks = new ArrayList<>();
 
-        for (Element recipeElement : onUser) {
-            // Находим ссылку внутри элемента
+        for (Element recipeElement : elements) {
             Element linkElement = recipeElement.selectFirst("a[href]");
             if (linkElement != null) {
                 String relativeLink = linkElement.attr("href");
-                // Преобразуем относительную ссылку в абсолютную
-                String absoluteLink;
-                if (!relativeLink.startsWith(baseUrl))
-                    absoluteLink = baseUrl.concat(relativeLink);
-                else
-                    absoluteLink = relativeLink;
+                String absoluteLink = relativeLink.startsWith(baseUrl) ?
+                        relativeLink : baseUrl.concat(relativeLink);
                 recipeLinks.add(absoluteLink);
 
-                // Выводим также название рецепта
                 Element titleElement = recipeElement.selectFirst("h3");
                 String title = titleElement != null ? titleElement.text() : "Без названия";
 
@@ -78,17 +68,32 @@ public class JsoupExample {
         }
 
         System.out.println("\nВсего найдено ссылок: " + recipeLinks.size());
+
+        proxyRepository.printProxyStats();
     }
 
-    private static Elements getFirstN(Elements src, int n) {
-        if (n < 0)
-            return src;
+    private static Document tryWithProxies(String url, int maxRetries) {
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                System.out.println("\nПопытка №" + (i + 1) + " с прокси");
 
-        Elements dst = new Elements();
-        int count = Math.min(n, src.size());
-        for (int i = 0; i < count; i++) {
-            dst.add(src.get(i));
+                Document doc = Jsoup.connect(url)
+                        .userAgent(userAgentRepository.getRandomUserAgent(true))
+                        .proxy(proxyRepository.getRandomProxy(true))
+                        .referrer("https://www.russianfood.com/search/")
+                        .timeout(TIMEOUT)
+                        .ignoreHttpErrors(true)
+                        .execute()
+                        .parse();
+
+                System.out.println("Успешно с прокси!");
+                return doc;
+
+            } catch (Exception e) {
+                System.out.println("Попытка " + (i + 1) + " не удалась: " +
+                        (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            }
         }
-        return dst;
+        return null;
     }
 }
